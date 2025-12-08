@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.dtos.UserDto;
 import org.example.entities.User;
 import org.example.services.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +30,7 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<User> novoUsuario(@Valid @RequestBody UserDto userDto) {
-        return ResponseEntity.ok(this.userService.novoUsuario(userDto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.novoUsuario(userDto));
     }
 
     @PutMapping("{id}")
