@@ -11,6 +11,7 @@
 
     <modules>
         <module>users</module>
+        <module>memes</module>
     </modules>
 
     <properties>
