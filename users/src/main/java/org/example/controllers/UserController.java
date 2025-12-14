@@ -1,5 +1,6 @@
 package org.example.controllers;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.dtos.UserDto;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/memelandia/usuarios")
 @RequiredArgsConstructor
+@Tag(name = "Users")
 public class UserController {
 
     private final UserService userService;
