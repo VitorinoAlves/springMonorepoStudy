@@ -20,4 +20,5 @@ public class Meme {
     private String descricao;
     private Date dataCadastro;
     private Long categoryId;
+    private Long userId;
 }
