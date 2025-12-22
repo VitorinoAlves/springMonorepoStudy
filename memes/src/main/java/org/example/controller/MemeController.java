@@ -7,10 +7,9 @@ import org.example.dtos.MemeDto;
 import org.example.entities.Meme;
 import org.example.services.MemeService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/memelandia/meme")
@@ -23,4 +22,21 @@ public class MemeController {
     public ResponseEntity<Meme> criarNovoMeme(@Valid @RequestBody MemeDto memeDto) {
        return ResponseEntity.ok(memeService.criaNovoMeme(memeDto));
     }
+
+    @GetMapping
+    public ResponseEntity<List<Meme>> retornaTodosOsMemes() {
+        return ResponseEntity.ok(memeService.retornaTodosOsMemes());
+    }
+
+    @GetMapping("{id}")
+    public ResponseEntity<Meme> retornaMemeById(@PathVariable Long id) {
+        return ResponseEntity.ok(memeService.retornaMemeById(id));
+    }
+
+    @GetMapping("/meme-do-dia")
+    public ResponseEntity<Meme> retornaMemeDoDia() {
+        return ResponseEntity.ok(memeService.retornaMemeDoDia());
+    }
+
+
 }

@@ -6,13 +6,16 @@ import org.example.clients.UserClient;
 import org.example.dtos.MemeDto;
 import org.example.entities.Meme;
 import org.example.exceptions.InvalidDataExecption;
+import org.example.exceptions.ResourceNotFound;
 import org.example.mapper.CategoriaMapper;
 import org.example.mapper.MemeMapper;
 import org.example.repositories.CategoriaRepository;
 import org.example.repositories.MemeRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,24 @@ public class MemeService {
         }
 
         return memeRepository.insert(meme);
+    }
+
+    public List<Meme> retornaTodosOsMemes() {
+        return memeRepository.findAll();
+    }
+
+    public Meme retornaMemeById(Long id) {
+        return memeRepository.findById(id).orElseThrow(() -> new ResourceNotFound("Meme não encontrado para o ID: " + id));
+    }
+
+    @Cacheable(value = "memeDoDia")
+    public Meme retornaMemeDoDia() {
+        Meme memeRandom = memeRepository.findRandomMeme();
+
+        if (memeRandom == null) {
+            throw new ResourceNotFound("Nenhum meme disponível no momento.");
+        }
+        return memeRandom;
     }
 
 }
