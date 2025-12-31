@@ -38,5 +38,10 @@ public class MemeController {
         return ResponseEntity.ok(memeService.retornaMemeDoDia());
     }
 
+    @PutMapping("{id}")
+    public ResponseEntity<Meme> atualizaMeme(@Valid @RequestBody MemeDto memeDto, @PathVariable Long id) {
+        return ResponseEntity.ok(memeService.atualizaMeme(memeDto, id));
+    }
+
 
 }

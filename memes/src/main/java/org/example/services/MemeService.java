@@ -21,24 +21,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MemeService {
     private final MemeRepository memeRepository;
-    private final CategoriaRepository categoriaRepository;
     private final MemeMapper memeMapper;
-    private final UserClient userClient;
+    private final UserService userService;
+    private final CategoriaService categoriaService;
 
 
     public Meme criaNovoMeme(MemeDto memeDto) {
         Meme meme = memeMapper.toEntity(memeDto);
         meme.setDataCadastro(new Date());
 
-        categoriaRepository.findById(meme.getCategoryId()).orElseThrow(() -> new InvalidDataExecption("Categoria não encontrada para o Id informado: " + meme.getCategoryId()));
-        try {
-            userClient.getUserById(meme.getUserId());
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                throw new InvalidDataExecption("Usuário não encontrado para o ID informado: " + meme.getUserId());
-            }
-            throw new RuntimeException("Falha na comunicação com o serviço 'users'. Código: " + e.status(), e);
-        }
+        categoriaService.validarCategoria(meme.getCategoryId());
+        userService.validarUsuario(meme.getUserId());
 
         return memeRepository.insert(meme);
     }
@@ -59,6 +52,17 @@ public class MemeService {
             throw new ResourceNotFound("Nenhum meme disponível no momento.");
         }
         return memeRandom;
+    }
+
+    public Meme atualizaMeme(MemeDto memeDto, Long id) {
+        Meme memeExistente = memeRepository.findById(id).orElseThrow(() -> new ResourceNotFound("Meme não encontrado para o ID: " + id));
+        memeMapper.updateEntityFromDto(memeDto, memeExistente);
+
+        categoriaService.validarCategoria(memeExistente.getCategoryId());
+        userService.validarUsuario(memeExistente.getUserId());
+
+
+        return memeRepository.save(memeExistente);
     }
 
 }

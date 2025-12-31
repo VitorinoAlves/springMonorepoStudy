@@ -17,7 +17,6 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map <String, String> errors = new HashMap<>();
 
@@ -31,7 +30,6 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InvalidDataExecption.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ErrorResponseDto> handleResourceNotFound(InvalidDataExecption ex) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
 
@@ -45,7 +43,6 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFound.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ErrorResponseDto> handleResourceNorFound(ResourceNotFound ex) {
         HttpStatus status = HttpStatus.NOT_FOUND;
 
@@ -59,7 +56,6 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceBeingUsedException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
     public ResponseEntity<ErrorResponseDto> handleResourceBeingUsedException(ResourceBeingUsedException ex) {
         HttpStatus status = HttpStatus.CONFLICT;
 
@@ -70,5 +66,15 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(errorResponseDto, status);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponseDto> handleGenericError(Exception ex) {
+        ErrorResponseDto error = new ErrorResponseDto(
+                "Ocorreu um erro interno inesperado.",
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error"
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

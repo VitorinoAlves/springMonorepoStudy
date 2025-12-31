@@ -20,25 +20,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoriaService {
     private final CategoriaRepository categoriaRepository;
-
     private final CategoriaMapper categoriaMapper;
-
-    private final UserClient userClient;
     private final MemeRepository memeRepository;
+    private final UserService userService;
 
     public Categoria novaCategoria(CategoriaDto categoriaDto) {
         Categoria categoria = categoriaMapper.toEntity(categoriaDto);
         categoria.setDataCadastro(new Date());
 
-        try {
-            userClient.getUserById(categoria.getUserId());
-        } catch (FeignException e) {
-            if (e.status() == 404)
-            {
-                throw new InvalidDataExecption("Usuário não encontrado para o ID informado: " + categoria.getUserId());
-            }
-            throw new RuntimeException("Falha na comunicação com o serviço 'users'. Código: " + e.status(), e);
-        }
+        userService.validarUsuario(categoria.getUserId());
+
         return categoriaRepository.insert(categoria);
     }
 
@@ -63,5 +54,11 @@ public class CategoriaService {
             throw new ResourceBeingUsedException("Não é possível deletar: existem memes nesta categoria.");
         }
         categoriaRepository.delete(categoriaExistente);
+    }
+
+    public void validarCategoria(Long categoriaId) {
+        if (!categoriaRepository.existsById(categoriaId)) {
+            throw new ResourceNotFound("Categoria não encontrada para o id: " + categoriaId);
+        }
     }
 }
