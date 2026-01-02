@@ -16,4 +16,16 @@ export class UserClient {
 
         return http.post(url, payload, params);
     }
+
+    getById(id) {
+        const url = `${this.baseUrl}/memelandia/usuarios/${id}`;
+        const params = {
+            headers: {
+                "Content-Type": "application/json",
+            },
+        };
+
+        return http.get(url, params);
+
+    }
 }

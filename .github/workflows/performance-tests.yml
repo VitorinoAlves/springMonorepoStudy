@@ -1,0 +1,74 @@
+name: Performance Tests (K6) - Users API
+
+on:
+  workflow_dispatch:
+    inputs:
+      workload:
+        description: 'Perfil de carga'
+        required: true
+        default: 'smoke'
+        type: choice
+        options: [smoke, average, stress]
+      environment:
+        description: 'Ambiente'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, hml]
+
+jobs:
+  k6-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 20
+        uses: actions/setup-java@v4
+        with:
+          java-version: '20' # Conforme seu pom.xml
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Users Module
+        # -pl: project list (foca no module users)
+        # -am: also make (constrói dependências do monorepo necessárias para o users)
+        run: mvn clean install -pl users -am -DskipTests
+
+      - name: Start Users API
+        env:
+          # Configurações para rodar sem depender do discovery-service no teste de performance
+          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/memeland-user
+          EUREKA_CLIENT_ENABLED: "false"
+          SPRING_CLOUD_DISCOVERY_ENABLED: "false"
+        run: |
+          # O JAR gerado fica dentro da pasta do módulo 'users'
+          java -jar users/target/*.jar &
+          
+          echo "Aguardando Users API subir..."
+          timeout 60s bash -c 'until curl -s localhost:8080/actuator/health; do sleep 2; done'
+
+      - name: Setup K6
+        uses: grafana/k6-action@v0.3.1
+
+      - name: Run K6 Test Suite
+        env:
+          WORKLOAD: ${{ github.event.inputs.workload }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          k6 run -e WORKLOAD=$WORKLOAD -e ENVIRONMENT=$ENVIRONMENT utilities/performance/suites/mainSuite.js
+
+      - name: Upload K6 Reports
+        if: always() # Garante que o relatório seja salvo mesmo se o teste falhar
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-performance-reports
+          path: |
+            summary.html
