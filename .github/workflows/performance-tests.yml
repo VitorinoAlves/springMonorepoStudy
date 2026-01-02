@@ -40,7 +40,7 @@ jobs:
       - name: Build Users Module
         # -pl: project list (foca no module users)
         # -am: also make (constrói dependências do monorepo necessárias para o users)
-        run: mvn clean install -pl users -am -DskipTests
+        run: mvn clean install -pl users -am -DskipTests -U --no-transfer-progress
 
       - name: Start Users API
         env:
