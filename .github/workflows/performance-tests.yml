@@ -49,8 +49,9 @@ jobs:
           EUREKA_CLIENT_ENABLED: "false"
           SPRING_CLOUD_DISCOVERY_ENABLED: "false"
         run: |
-          # O JAR gerado fica dentro da pasta do módulo 'users'
-          java -jar users/target/*.jar &
+          # Busca o jar que NÃO termina em .original
+          JAR_FILE=$(ls users/target/*.jar | grep -v 'original' | head -n 1)
+          java -jar $JAR_FILE &
           
           echo "Aguardando Users API subir..."
           timeout 60s bash -c 'until curl -s localhost:8080/actuator/health; do sleep 2; done'
