@@ -31,6 +31,24 @@ export const WorkloadConfig = {
     }
 };
 
+/**
+ * Estende os thresholds globais para cenários específicos
+ * @param {Object} baseThresholds - Os thresholds do workload (ex: p(95)<500)
+ * @param {Array} scenarios - Lista de nomes dos cenários (ex: ['fluxo_criacao', 'fluxo_leitura'])
+ */
+
+export function generateScenarioThresholds(baseThresholds, scenarios) {
+    const extendedThresholds = { ...baseThresholds };
+
+    scenarios.forEach(scenario => {
+        Object.keys(baseThresholds).forEach(metric => {
+            const scenarioMetric = `${metric}{scenario:${scenario}}`;
+            extendedThresholds[scenarioMetric] = baseThresholds[metric];
+        });
+    });
+    return extendedThresholds;
+}
+
 export function getWorkload(name) {
     return WorkloadConfig[name] || WorkloadConfig.smoke;
 }

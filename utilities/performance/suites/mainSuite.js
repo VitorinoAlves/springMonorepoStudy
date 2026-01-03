@@ -4,14 +4,15 @@ import { textSummary } from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
 import { criaUsuarioScenario } from '../tests/criaUsuarioTest.js';
 import { buscaUsuarioScenario, setup as setupBusca } from '../tests/buscaUsuarioTest.js';
 import { Config } from '../config/environment.js';
-import { getWorkload } from '../config/workloads.js';
+import { getWorkload, generateScenarioThresholds } from '../config/workloads.js';
 
+const SCENARIO_NAMES = ['fluxo_criacao', 'fluxo_leitura'];
 const baseWorkload = getWorkload(__ENV.WORKLOAD);
 
 export const setup = setupBusca;
 
 export const options = {
-    thresholds: baseWorkload.thresholds,
+    thresholds: generateScenarioThresholds(baseWorkload.thresholds, SCENARIO_NAMES),
 
     scenarios: {
         fluxo_criacao: {
@@ -35,7 +36,7 @@ export { criaUsuarioScenario, buscaUsuarioScenario };
 
 export function handleSummary(data) {
   return {
-    "summary.html": htmlReport(data),
+    "userSummary.html": htmlReport(data),
     //"stdout": textSummary(data, { indent: " ", enableColors: true }),
   };
 }
