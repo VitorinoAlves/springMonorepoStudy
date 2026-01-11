@@ -1,100 +1,171 @@
 package services;
 
-import lombok.RequiredArgsConstructor;
 import org.example.dtos.CategoriaDto;
 import org.example.entities.Categoria;
 import org.example.exceptions.InvalidDataExecption;
+import org.example.exceptions.ResourceBeingUsedException;
+import org.example.exceptions.ResourceNotFound;
 import org.example.mapper.CategoriaMapper;
 import org.example.repositories.CategoriaRepository;
+import org.example.repositories.MemeRepository;
 import org.example.services.CategoriaService;
 import org.example.services.UserService;
-import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doThrow;
-
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
-@RequiredArgsConstructor
-public class CategoriaServiceTest {
-    @Mock
-    private CategoriaRepository categoriaRepository;
+class CategoriaServiceTest {
 
-    @Mock
-    private CategoriaMapper categoriaMapper;
+    @Mock private CategoriaRepository categoriaRepository;
+    @Mock private CategoriaMapper categoriaMapper;
+    @Mock private UserService userService;
+    @Mock private MemeRepository memeRepository;
 
-    @Mock
-    private UserService userService;
+    @InjectMocks private CategoriaService categoriaService;
 
-    @InjectMocks
-    private CategoriaService categoriaService;
+    private Categoria categoriaBase;
+    private CategoriaDto categoriaDtoBase;
+    private final Long CATEGORIA_ID = 1L;
+    private final Long USER_ID = 1L;
+
+    @BeforeEach
+    void setUp() {
+        categoriaDtoBase = new CategoriaDto("Categoria Test", "Descrição", USER_ID);
+        categoriaBase = new Categoria(CATEGORIA_ID, "Categoria Test", "Descrição", new Date(), USER_ID);
+    }
+
+    // --- CENÁRIOS DE CRIAÇÃO ---
 
     @Test
-    void criaNovaCategoriaTest() {
-        CategoriaDto categoriaDto = new CategoriaDto("Categoria Test", "Categoria Descrição", 1l);
-        Categoria categoriaToSave = new Categoria(null, "Categoria Test", "Categoria Descrição",  null, 1l);
-        Categoria categoriaSaved = new Categoria(1l, "Categoria Test", "Categoria Descrição",  new Date(), 1l);
+    @DisplayName("1. Deve criar categoria com sucesso")
+    void shouldCreateCategory_WhenDataIsValid() {
+        given(categoriaMapper.toEntity(any())).willReturn(categoriaBase);
+        given(categoriaRepository.insert(any(Categoria.class))).willReturn(categoriaBase);
 
-        given(categoriaMapper.toEntity(categoriaDto)).willReturn(categoriaToSave);
-        given(categoriaRepository.insert(categoriaToSave)).willReturn(categoriaSaved);
+        Categoria result = categoriaService.novaCategoria(categoriaDtoBase);
 
-
-        Categoria actualSavedCategoria = categoriaService.novaCategoria(categoriaDto);
-
-        assertThat(actualSavedCategoria).isNotNull();
-        assertThat(actualSavedCategoria.getNome()).isEqualTo("Categoria Test");
-
-        Mockito.verify(categoriaRepository, Mockito.times(1)).insert(categoriaToSave);
-        Mockito.verify(userService, Mockito.times(1)).validarUsuario(categoriaToSave.getUserId());
+        assertThat(result).isNotNull();
+        then(userService).should().validarUsuario(USER_ID);
     }
 
     @Test
-    void criaNovaCategoriaWithInvalidUser() {
-        Long userId = 1l;
-        CategoriaDto categoriaDto = new CategoriaDto("Categoria Test", "Categoria Descrição", userId);
-        Categoria categoriaToSave = new Categoria(null, "Categoria Test", "Categoria Descrição",  null, userId);
+    @DisplayName("2. Deve falhar ao criar categoria com usuário inválido")
+    void shouldThrowException_WhenUserIsInvalid() {
+        given(categoriaMapper.toEntity(any())).willReturn(categoriaBase);
+        willThrow(new InvalidDataExecption("Usuário não encontrado")).given(userService).validarUsuario(USER_ID);
 
-        given(categoriaMapper.toEntity(categoriaDto)).willReturn(categoriaToSave);
-        doThrow(new InvalidDataExecption("Usuário não encontrado para o ID: " + userId))
-                .when(userService).validarUsuario(userId);
+        assertThatThrownBy(() -> categoriaService.novaCategoria(categoriaDtoBase))
+                .isInstanceOf(InvalidDataExecption.class);
 
-        InvalidDataExecption execption = Assertions.assertThrows(
-                InvalidDataExecption.class,
-                () -> categoriaService.novaCategoria(categoriaDto)
-        );
+        then(categoriaRepository).should(never()).insert(any(Categoria.class));
+    }
 
-        assertThat(execption.getMessage()).isEqualTo("Usuário não encontrado para o ID: 1");
-        Mockito.verify(categoriaRepository, Mockito.never()).insert(any(Categoria.class));
+    // --- CENÁRIOS DE BUSCA ---
+
+    @Test
+    @DisplayName("3. Deve retornar todas as categorias")
+    void shouldReturnAllCategories() {
+        given(categoriaRepository.findAll()).willReturn(List.of(categoriaBase));
+
+        List<Categoria> result = categoriaService.retornaTodasCategorias();
+
+        assertThat(result).hasSize(1);
+        then(categoriaRepository).should().findAll();
     }
 
     @Test
-    void retornaTodasCategoriasTest() {
-        List<Categoria> categoriaList = new ArrayList<>();
-        categoriaList.add(new Categoria(1l, "Categoria Test - 1", "Categoria Descrição - 2",  new Date(), 1l));
-        categoriaList.add(new Categoria(2l, "Categoria Test - 2", "Categoria Descrição - 2",  new Date(), 1l));
+    @DisplayName("4. Deve retornar categoria por ID")
+    void shouldReturnCategory_WhenIdExists() {
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.of(categoriaBase));
 
-        given(categoriaRepository.findAll()).willReturn(categoriaList);
+        Categoria result = categoriaService.retornaCategoriaById(CATEGORIA_ID);
 
-        List<Categoria> returnedCategoriaList = categoriaService.retornaTodasCategorias();
-
-        assertThat(returnedCategoriaList).isNotNull();
-        assertThat(returnedCategoriaList.size()).isEqualTo(2);
-        assertThat(returnedCategoriaList.get(0).getNome()).isEqualTo("Categoria Test - 1");
-        assertThat(returnedCategoriaList.get(1).getNome()).isEqualTo("Categoria Test - 2");
-
-        Mockito.verify(categoriaRepository, Mockito.times(1)).findAll();
+        assertThat(result.getNome()).isEqualTo(categoriaBase.getNome());
     }
 
+    @Test
+    @DisplayName("5. Deve lançar erro quando categoria não existe no findById")
+    void shouldThrowNotFound_WhenCategoryIdDoesNotExist() {
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.empty());
 
+        assertThatThrownBy(() -> categoriaService.retornaCategoriaById(CATEGORIA_ID))
+                .isInstanceOf(ResourceNotFound.class);
+    }
+
+    // --- CENÁRIOS DE ATUALIZAÇÃO ---
+
+    @Test
+    @DisplayName("6. Deve atualizar categoria com sucesso")
+    void shouldUpdateCategory_WhenExists() {
+        CategoriaDto updateDto = new CategoriaDto("Novo Nome", "Nova Desc", USER_ID);
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.of(categoriaBase));
+        given(categoriaRepository.save(any(Categoria.class))).willReturn(categoriaBase);
+
+        Categoria result = categoriaService.atualizaCategoria(updateDto, CATEGORIA_ID);
+
+        assertThat(result).isNotNull();
+        then(categoriaRepository).should().save(any(Categoria.class));
+    }
+
+    @Test
+    @DisplayName("7. Deve falhar ao atualizar categoria inexistente")
+    void shouldThrowNotFound_WhenUpdatingNonExistentCategory() {
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> categoriaService.atualizaCategoria(categoriaDtoBase, CATEGORIA_ID))
+                .isInstanceOf(ResourceNotFound.class);
+
+        then(categoriaRepository).should(never()).save(any(Categoria.class));
+    }
+
+    // --- CENÁRIOS DE EXCLUSÃO ---
+
+    @Test
+    @DisplayName("8. Deve deletar categoria com sucesso")
+    void shouldDeleteCategory_WhenNoMemesLinked() {
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.of(categoriaBase));
+        given(memeRepository.existsByCategoryId(CATEGORIA_ID)).willReturn(false);
+
+        categoriaService.deletaCategoria(CATEGORIA_ID);
+
+        then(categoriaRepository).should().delete(any(Categoria.class));
+    }
+
+    @Test
+    @DisplayName("9. Deve falhar ao deletar categoria inexistente")
+    void shouldThrowNotFound_WhenDeletingNonExistentCategory() {
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> categoriaService.deletaCategoria(CATEGORIA_ID))
+                .isInstanceOf(ResourceNotFound.class);
+
+        then(categoriaRepository).should(never()).delete(any(Categoria.class));
+    }
+
+    @Test
+    @DisplayName("10. Deve falhar ao deletar categoria que possui memes")
+    void shouldThrowException_WhenDeletingCategoryWithMemes() {
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.of(categoriaBase));
+        given(memeRepository.existsByCategoryId(CATEGORIA_ID)).willReturn(true);
+
+        assertThatThrownBy(() -> categoriaService.deletaCategoria(CATEGORIA_ID))
+                .isInstanceOf(ResourceBeingUsedException.class);
+
+        then(categoriaRepository).should(never()).delete(any(Categoria.class));
+    }
 }
