@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.dtos.CategoriaDto;
 import org.example.entities.Categoria;
 import org.example.services.CategoriaService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class CategoriaController {
 
     @PostMapping
     public ResponseEntity<Categoria> novaCategoria(@Valid @RequestBody CategoriaDto categoriaDto) {
-        return ResponseEntity.ok(categoriaService.novaCategoria(categoriaDto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaService.novaCategoria(categoriaDto));
     }
 
     @GetMapping
